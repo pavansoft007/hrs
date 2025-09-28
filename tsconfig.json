@@ -5,6 +5,12 @@
   "references": [
     {
       "path": "./packages"
+    },
+    {
+      "path": "./packages/restaurant-client-e2e"
+    },
+    {
+      "path": "./packages/restaurant-client"
     }
   ]
 }
