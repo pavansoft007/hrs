@@ -11,6 +11,12 @@
     },
     {
       "path": "./packages/restaurant-client"
+    },
+    {
+      "path": "./packages/hotel-client-e2e"
+    },
+    {
+      "path": "./packages/hotel-client"
     }
   ]
 }

@@ -451,7 +451,7 @@ export function Hotels() {
             variant="light"
             color="blue"
             size="md"
-            onClick={() => navigate(`/hotels/${hotel.id}`)}
+            onClick={() => navigate(`/hotels/view/${hotel.id}`)}
           >
             <Eye size={16} />
           </ActionIcon>
@@ -460,7 +460,7 @@ export function Hotels() {
             variant="light"
             color="orange"
             size="md"
-            onClick={() => navigate(`/hotels/${hotel.id}/edit`)}
+            onClick={() => navigate(`/hotels/edit/${hotel.id}`)}
           >
             <Edit size={16} />
           </ActionIcon>
@@ -520,7 +520,7 @@ export function Hotels() {
                     variant="light"
                     color="blue"
                     size="sm"
-                    onClick={() => navigate(`/hotels/${hotel.id}`)}
+                    onClick={() => navigate(`/hotels/view/${hotel.id}`)}
                   >
                     <Eye size={14} />
                   </ActionIcon>
@@ -529,7 +529,7 @@ export function Hotels() {
                     variant="light"
                     color="orange"
                     size="sm"
-                    onClick={() => navigate(`/hotels/${hotel.id}/edit`)}
+                    onClick={() => navigate(`/hotels/edit/${hotel.id}`)}
                   >
                     <Edit size={14} />
                   </ActionIcon>
