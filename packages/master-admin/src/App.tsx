@@ -14,7 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import BlankPage from './pages/BlankPage';
 import CreateHotel from './pages/CreateHotel';
 import CreateRestaurant from './pages/CreateRestaurant';
-import Dashboard from './pages/Dashboard';
+import SimpleDashboard from './pages/SimpleDashboard';
 import { EditHotel } from './pages/hotels/EditHotel';
 import { Hotels } from './pages/hotels/Hotels';
 import { ViewHotel } from './pages/hotels/ViewHotel';
@@ -68,7 +68,11 @@ function App() {
   // Initialize authentication on app start
   useEffect(() => {
     const initApp = async () => {
-      await initializeApp();
+      try {
+        await initializeApp();
+      } catch (error) {
+        console.error('App initialization failed:', error);
+      }
     };
     initApp();
   }, []);
@@ -96,7 +100,7 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardLayout>
-                      <Dashboard />
+                      <SimpleDashboard />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

@@ -4,6 +4,7 @@ import express from 'express';
 import sequelize from './config/database.js';
 import authRoutes from './routes/auth.js';
 import dashboardRoutes from './routes/dashboard.js';
+import hotelRoutes from './routes/hotel.js';
 import propertyRoutes from './routes/properties.js';
 import rolePermissionRoutes from './routes/rolePermissions.js';
 import userRoutes from './routes/users.js';
@@ -17,9 +18,12 @@ const PORT = process.env.PORT || 5001;
 // Middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || [
+      'http://localhost:4200',
+      'http://localhost:5173',
+    ],
     credentials: true,
-  }),
+  })
 );
 
 app.use(express.json({ limit: '10mb' }));
@@ -37,6 +41,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/hotel', hotelRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/role-permissions', rolePermissionRoutes);
 app.use('/api/users', userRoutes);
@@ -47,7 +52,7 @@ app.use(
     err: Error,
     req: express.Request,
     res: express.Response,
-    next: express.NextFunction,
+    next: express.NextFunction
   ) => {
     console.error('Unhandled error:', err);
     res.status(500).json({
@@ -56,7 +61,7 @@ app.use(
       ...(process.env.NODE_ENV === 'development' && { error: err.message }),
     });
     next();
-  },
+  }
 );
 
 // 404 handler

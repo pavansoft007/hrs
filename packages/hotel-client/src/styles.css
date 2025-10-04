@@ -1,0 +1,26 @@
+/* Global styles */
+
+/* Reset any blur effects */
+* {
+  backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* Ensure clear rendering */
+body, html {
+  backdrop-filter: none !important;
+  filter: none !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Specific reset for common blur classes */
+.blur, .blurred, .backdrop-blur {
+  backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* Reset for modals and overlays */
+.modal-overlay, .overlay, .sidebar-overlay {
+  backdrop-filter: none !important;
+}

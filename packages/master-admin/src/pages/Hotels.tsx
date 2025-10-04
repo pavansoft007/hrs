@@ -129,7 +129,7 @@ export function Hotels() {
   };
 
   const handleView = (id: number) => {
-    navigate(`/hotels/${id}`);
+    navigate(`/hotels/view/${id}`);
   };
 
   const handleDelete = async (id: number) => {
