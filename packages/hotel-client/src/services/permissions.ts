@@ -13,6 +13,8 @@ export type Permission =
   | 'check_out'
   | 'view_reports'
   | 'manage_staff'
+  | 'manage_users'
+  | 'manage_roles'
   | 'view_property_settings'
   | 'edit_property_settings'
   | 'view_financial_data';
@@ -41,6 +43,7 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     'check_out',
     'view_reports',
     'manage_staff',
+    'manage_users',
     'view_property_settings',
     'edit_property_settings',
     'view_financial_data',
@@ -78,6 +81,25 @@ const ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
 
 // User type permissions (fallback if no specific role)
 const USER_TYPE_PERMISSIONS: Record<string, Permission[]> = {
+  MASTER_ADMIN: [
+    'view_rooms',
+    'create_room',
+    'edit_room',
+    'delete_room',
+    'view_bookings',
+    'create_booking',
+    'edit_booking',
+    'cancel_booking',
+    'check_in',
+    'check_out',
+    'view_reports',
+    'manage_staff',
+    'manage_users',
+    'manage_roles',
+    'view_property_settings',
+    'edit_property_settings',
+    'view_financial_data',
+  ],
   PROPERTY_ADMIN: ROLE_PERMISSIONS.PROPERTY_ADMIN,
   STAFF: ['view_rooms', 'view_bookings'], // Basic staff permissions
 };
@@ -216,12 +238,20 @@ export class PermissionService {
         enabled: this.hasPermission(user, 'view_reports'),
       },
       {
-        id: 'staff',
-        title: 'Staff Management',
-        icon: '👥',
-        path: '/staff',
-        permissions: ['manage_staff'] as Permission[],
-        enabled: this.hasPermission(user, 'manage_staff'),
+        id: 'users',
+        title: 'User Management',
+        icon: '�',
+        path: '/users',
+        permissions: ['manage_users', 'manage_staff'] as Permission[],
+        enabled: this.hasAnyPermission(user, ['manage_users', 'manage_staff']),
+      },
+      {
+        id: 'roles',
+        title: 'Role Management',
+        icon: '🔐',
+        path: '/roles',
+        permissions: ['manage_roles'] as Permission[],
+        enabled: this.hasPermission(user, 'manage_roles'),
       },
       {
         id: 'settings',

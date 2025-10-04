@@ -8,8 +8,8 @@
       "vite/client",
       "node",
       "vitest",
-      "@nx/react/typings/cssmodule.d.ts",
-      "@nx/react/typings/image.d.ts"
+      "@nx/react/typings/cssmodule",
+      "@nx/react/typings/image"
     ],
     "jsx": "react-jsx",
     "module": "esnext",

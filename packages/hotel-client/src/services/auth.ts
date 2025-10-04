@@ -28,8 +28,8 @@ export interface AuthResponse {
   data: {
     user: User;
     tokens: {
-      access_token: string;
-      refresh_token: string;
+      accessToken: string;
+      refreshToken: string;
     };
   };
 }
@@ -38,6 +38,8 @@ export class AuthService {
   private static ACCESS_TOKEN_KEY = 'hotel_access_token';
   private static REFRESH_TOKEN_KEY = 'hotel_refresh_token';
   private static USER_KEY = 'hotel_user';
+  private static refreshAttempts = 0;
+  private static maxRefreshAttempts = 3;
 
   // Configure axios defaults
   static {
@@ -56,19 +58,75 @@ export class AuthService {
     axios.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response?.status === 401) {
+        const originalRequest = error.config;
+
+        // Prevent infinite loops by checking if this is already a retry
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
           const refreshToken = AuthService.getRefreshToken();
+
+          // Skip refresh for login/register endpoints to prevent loops
+          if (
+            originalRequest.url?.includes('/auth/login') ||
+            originalRequest.url?.includes('/auth/register') ||
+            originalRequest.url?.includes('/auth/refresh')
+          ) {
+            return Promise.reject(error);
+          }
+
           if (refreshToken) {
             try {
+              // Check if we've exceeded max refresh attempts
+              if (
+                AuthService.refreshAttempts >= AuthService.maxRefreshAttempts
+              ) {
+                console.error('Maximum refresh attempts exceeded');
+                AuthService.clearAuthData();
+                AuthService.refreshAttempts = 0;
+                window.location.href = '/login';
+                return Promise.reject(
+                  new Error('Maximum refresh attempts exceeded')
+                );
+              }
+
+              AuthService.refreshAttempts++;
+
               await AuthService.refreshToken();
-              // Retry the original request
-              return axios.request(error.config);
+
+              // Reset attempts on successful refresh
+              AuthService.refreshAttempts = 0;
+
+              // Retry the original request with new token
+              const newToken = AuthService.getAccessToken();
+              if (newToken) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                return axios(originalRequest);
+              }
             } catch (refreshError) {
-              AuthService.logout();
-              window.location.href = '/login';
+              console.error(
+                `Token refresh failed (attempt ${AuthService.refreshAttempts}):`,
+                refreshError
+              );
+
+              // If max attempts reached, clear everything and redirect
+              if (
+                AuthService.refreshAttempts >= AuthService.maxRefreshAttempts
+              ) {
+                AuthService.clearAuthData();
+                AuthService.refreshAttempts = 0;
+                window.location.href = '/login';
+              }
+
+              return Promise.reject(refreshError);
             }
+          } else {
+            // No refresh token, redirect to login
+            AuthService.clearAuthData();
+            window.location.href = '/login';
           }
         }
+
         return Promise.reject(error);
       }
     );
@@ -93,25 +151,56 @@ export class AuthService {
         }
 
         // Store authentication data
-        AuthService.setTokens(tokens.access_token, tokens.refresh_token);
+        AuthService.setTokens(tokens.accessToken, tokens.refreshToken);
         AuthService.setUser(user);
+
+        // Reset refresh attempts on successful login
+        AuthService.refreshAttempts = 0;
+      } else {
+        // Handle server response with success: false
+        throw new Error(response.data.message || 'Login failed');
       }
 
       return response.data;
     } catch (error: unknown) {
+      // Handle axios errors with response data
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const axiosError = error as {
+          response?: {
+            data?: {
+              success?: boolean;
+              message?: string;
+            };
+            status?: number;
+          };
+        };
+
+        // If the server responded with an error message, use it
+        if (axiosError.response?.data?.message) {
+          throw new Error(axiosError.response.data.message);
+        }
+
+        // Handle specific HTTP status codes
+        const status = axiosError.response?.status;
+        if (status === 401) {
+          throw new Error('Invalid email or password');
+        }
+
+        if (status === 403) {
+          throw new Error('Access denied. Contact your administrator.');
+        }
+
+        if (status && status >= 500) {
+          throw new Error('Server error. Please try again later.');
+        }
+      }
+
+      // Handle other error types
       if (error instanceof Error && error.message) {
         throw new Error(error.message);
       }
 
-      // Handle axios errors
-      if (typeof error === 'object' && error !== null && 'response' in error) {
-        const axiosError = error as {
-          response?: { data?: { message?: string } };
-        };
-        throw new Error(axiosError.response?.data?.message || 'Login failed');
-      }
-
-      throw new Error('Login failed');
+      throw new Error('Login failed. Please check your network connection.');
     }
   }
 
@@ -124,15 +213,26 @@ export class AuthService {
       throw new Error('No refresh token available');
     }
 
-    const response = await axios.post<AuthResponse>('/auth/refresh', {
-      refreshToken,
-    });
+    try {
+      // Create a new axios instance to avoid interceptor interference
+      const refreshAxios = axios.create({
+        baseURL: API_BASE_URL,
+      });
 
-    if (response.data.success) {
-      const { tokens } = response.data.data;
-      AuthService.setTokens(tokens.access_token, tokens.refresh_token);
-    } else {
-      throw new Error('Token refresh failed');
+      const response = await refreshAxios.post<AuthResponse>('/auth/refresh', {
+        refreshToken: refreshToken,
+      });
+
+      if (response.data.success && response.data.data?.tokens) {
+        const { tokens } = response.data.data;
+        AuthService.setTokens(tokens.accessToken, tokens.refreshToken);
+      } else {
+        throw new Error(response.data.message || 'Token refresh failed');
+      }
+    } catch (error) {
+      // Clear tokens on refresh failure
+      AuthService.clearAuthData();
+      throw error;
     }
   }
 
@@ -140,13 +240,18 @@ export class AuthService {
    * Logout user
    */
   static async logout(): Promise<void> {
+    // Clear auth data immediately to prevent refresh loops
+    const refreshToken = AuthService.getRefreshToken();
+    AuthService.clearAuthData();
+
     try {
-      await axios.post('/auth/logout');
+      // Only attempt server logout if we have a refresh token
+      if (refreshToken) {
+        await axios.post('/auth/logout', { refreshToken });
+      }
     } catch (error) {
       // Continue with logout even if server request fails
       console.error('Logout request failed:', error);
-    } finally {
-      AuthService.clearAuthData();
     }
   }
 

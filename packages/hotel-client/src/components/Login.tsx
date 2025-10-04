@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AuthService } from '../services/auth';
+import { useAuth } from '../contexts/AuthContext';
 import './Login.css';
 
 interface LocationState {
@@ -14,20 +14,20 @@ export const Login: React.FC = () => {
     email: '',
     password: '',
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { login, isAuthenticated, loading } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (AuthService.isAuthenticated()) {
+    if (isAuthenticated) {
       const state = location.state as LocationState;
       const from = state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     }
-  }, [navigate, location]);
+  }, [isAuthenticated, navigate, location]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,26 +41,28 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
     try {
-      const response = await AuthService.login(credentials);
+      await login(credentials.email, credentials.password);
 
-      if (response.success) {
-        // Redirect to intended page or dashboard
-        const state = location.state as LocationState;
-        const from = state?.from?.pathname || '/dashboard';
-        navigate(from, { replace: true });
-      }
+      // Navigation will be handled by the useEffect when isAuthenticated changes
+      // But let's also try manual navigation as backup
+      const state = location.state as LocationState;
+      const from = state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Login failed. Please check your credentials.';
+      console.error('Login error:', err);
+
+      let errorMessage = 'Login failed. Please check your credentials.';
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+
       setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 

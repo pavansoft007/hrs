@@ -7,8 +7,8 @@
     "lib": ["dom"],
     "types": [
       "node",
-      "@nx/react/typings/cssmodule.d.ts",
-      "@nx/react/typings/image.d.ts",
+      "@nx/react/typings/cssmodule",
+      "@nx/react/typings/image",
       "vite/client"
     ],
     "rootDir": "src",
